@@ -1,0 +1,126 @@
+> library(readxl)
+> library(annoFuse)
+Loading required package: annoFuseData
+
+> fusionfile<-read_excel("/mnt/c/Users/ainho/OneDrive/Escritorio/hagrid/ARCHIVOS CNAG/ARCHIVOS FUSIONES/MuestrasPAX_unificadas_fusiones.xlsx")
+
+> head(fusionfile)
+# A tibble: 6 × 29
+  ID_CNAG ID_H12O #FusionN…¹ Junct…² Spann…³ est_J est_S Splic…⁴ LeftG…⁵ LeftB…⁶
+  <chr>   <chr>   <chr>        <dbl>   <dbl> <dbl> <dbl> <chr>   <chr>   <chr>
+1 AW7774  PAX12   HBB--HBA2      924       0 924    0    ONLY_R… HBB^EN… chr11:…
+2 AW7775  PAX13   HBB--HBA2      584       1 584    0.63 ONLY_R… HBB^EN… chr11:…
+3 AW7775  PAX13   HBA2--HBB       55       0  26.7  0    ONLY_R… HBA2^E… chr16:…
+4 AW7776  PAX14   HBB--HBA2      390       2 306.   0.88 ONLY_R… HBB^EN… chr11:…
+5 AW7776  PAX14   HBB--HBA2      370       2  88.5  0.26 INCL_N… HBB^EN… chr11:…
+6 AW7777  PAX15   HBB--HBA2      788       1 656.   1    ONLY_R… HBB^EN… chr11:…
+# … with 19 more variables: RightGene <chr>, RightBreakpoint <chr>,
+#   LargeAnchorSupport <chr>, FFPM <dbl>, LeftBreakDinuc <chr>,
+#   LeftBreakEntropy <dbl>, RightBreakDinuc <chr>, RightBreakEntropy <dbl>,
+#   annots <chr>, CDS_LEFT_ID <chr>, CDS_LEFT_RANGE <chr>, CDS_RIGHT_ID <chr>,
+#   CDS_RIGHT_RANGE <chr>, PROT_FUSION_TYPE <chr>, FUSION_MODEL <chr>,
+#   FUSION_CDS <chr>, FUSION_TRANSL <chr>, PFAM_LEFT <chr>, PFAM_RIGHT <chr>,
+#   and abbreviated variable names ¹`#FusionName`, ²JunctionReadCount, …
+# ℹ Use `colnames()` to see all variable names
+
+> IDs_excel<-read_excel("/mnt/c/Users/ainho/OneDrive/Escritorio/hagrid/ARCHIVOS CNAG/ARCHIVOS FUSIONES/IDs.xlsx")
+> IDs<-IDs_excel$ID_H12O
+> IDs
+ [1] "PAX12" "PAX13" "PAX13" "PAX14" "PAX14" "PAX15" "PAX16" "PAX17" "PAX18"
+[10] "PAX18" "PAX19" "PAX20" "PAX20" "PAX21" "PAX21" "PAX21" "PAX21" "PAX22"
+[19] "PAX22" "PAX22" "PAX23" "PAX23" "PAX23" "PAX24" "PAX24" "PAX25" "PAX26"
+[28] "PAX26" "PAX27" "PAX27" "PAX28" "PAX30" "PAX31" "PAX31" "PAX31" "PAX03"
+[37] "PAX03" "PAX03" "PAX04" "PAX04" "PAX08" "PAX08" "PAX08" "PAX09" "PAX11"
+[46] "PAX33" "PAX35" "PAX35" "PAX35" "PAX35" "PAX35" "PAX36" "PAX36" "PAX36"
+[55] "PAX37" "PAX38" "PAX39" "PAX40" "PAX41" "PAX41" "PAX42" "PAX42" "PAX05"
+[64] "PAX05" "PAX05" "PAX05" "PAX05" "PAX05" "PAX05" "PAX43" "PAX43" "PAX43"
+[73] "PAX46" "PAX46" "PAX46" "PAX47" "PAX47" "PAX48" "PAX48" "PAX29" "PAX29"
+
+> formattedStarFusion <- fusion_standardization(fusionfile,caller="STARFUSION",tumorID=IDs)
+Warning messages:
+1: Expected 2 pieces. Missing pieces filled with `NA` in 81 rows [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, ...].
+2: Expected 2 pieces. Missing pieces filled with `NA` in 81 rows [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, ...].
+> head(formattedStarFusion)
+  LeftBreakpoint RightBreakpoint FusionName Sample     Caller Fusion_Type
+1     11:5226930       16:173125  HBB--HBA2  PAX12 STARFUSION    in-frame
+2     11:5226930       16:173125  HBB--HBA2  PAX13 STARFUSION    in-frame
+3      16:173007      11:5226799  HBA2--HBB  PAX13 STARFUSION    in-frame
+4     11:5226930       16:173125  HBB--HBA2  PAX14 STARFUSION    in-frame
+5     11:5226953       16:172985  HBB--HBA2  PAX14 STARFUSION    in-frame
+6     11:5226930       16:173125  HBB--HBA2  PAX15 STARFUSION    in-frame
+  JunctionReadCount SpanningFragCount Confidence
+1               924                 0         NA
+2               584                 1         NA
+3                55                 0         NA
+4               390                 2         NA
+5               370                 2         NA
+6               788                 1         NA
+                                                     annots GeneA Gene1A Gene2A
+1 [GTEx_recurrent_StarF2019,INTERCHROMOSOMAL[chr11--chr16]]   HBB    HBB   <NA>
+2 [GTEx_recurrent_StarF2019,INTERCHROMOSOMAL[chr11--chr16]]   HBB    HBB   <NA>
+3 [GTEx_recurrent_StarF2019,INTERCHROMOSOMAL[chr16--chr11]]  HBA2   HBA2   <NA>
+4 [GTEx_recurrent_StarF2019,INTERCHROMOSOMAL[chr11--chr16]]   HBB    HBB   <NA>
+5 [GTEx_recurrent_StarF2019,INTERCHROMOSOMAL[chr11--chr16]]   HBB    HBB   <NA>
+6 [GTEx_recurrent_StarF2019,INTERCHROMOSOMAL[chr11--chr16]]   HBB    HBB   <NA>
+  GeneB Gene1B Gene2B BreakpointLocation SpanningDelta
+1  HBA2   HBA2   <NA>              Genic          -924
+2  HBA2   HBA2   <NA>              Genic          -583
+3   HBB    HBB   <NA>              Genic           -55
+4  HBA2   HBA2   <NA>              Genic          -388
+5  HBA2   HBA2   <NA>              Genic          -368
+6  HBA2   HBA2   <NA>              Genic          -787
+
+> fusionQCFiltered <- fusion_filtering_QC(standardFusioncalls=formattedStarFusion,readingFrameFilter = "in-frame|frameshift|other",artifactFilter="GTEx_recurrent_StarF2019|DGD_PARALOGS|Normal|BodyMap", junctionReadCountFilter = 1,spanningFragCountFilter = 100, readthroughFilter = FALSE)
+Warning message:
+In fusion_filtering_QC(standardFusioncalls = formattedStarFusion,  :
+  No fusion calls with annotation: BodyMap
+  
+  > fusionQCFiltered
+   LeftBreakpoint RightBreakpoint         FusionName Sample     Caller
+10     10:6226365      10:6326546  PFKFB3--LINC02649  PAX18 STARFUSION
+20     10:6226365      10:6326546  PFKFB3--LINC02649  PAX22 STARFUSION
+35     10:6226365      10:6326546  PFKFB3--LINC02649  PAX31 STARFUSION
+38     10:6226365      10:6326546  PFKFB3--LINC02649  PAX03 STARFUSION
+40    20:63736186     20:63736197       ZGPAT--LIME1  PAX04 STARFUSION
+68    12:64610743     12:64785881    RASSF3--TBC1D30  PAX05 STARFUSION
+69    22:22026550     22:22899618 IGLVI-70--IGL@-ext  PAX05 STARFUSION
+77     10:6226365      10:6326546  PFKFB3--LINC02649  PAX47 STARFUSION
+81     10:6226365      10:6326546  PFKFB3--LINC02649  PAX29 STARFUSION
+   Fusion_Type JunctionReadCount SpanningFragCount Confidence
+10       other                20                 0         NA
+20       other                17                 0         NA
+35       other                17                 0         NA
+38       other                23                 1         NA
+40       other                22                 0         NA
+68  frameshift                44                 5         NA
+69       other                18                 4         NA
+77       other                32                 0         NA
+81       other                22                 0         NA
+                                                     annots    GeneA   Gene1A
+10        [INTRACHROMOSOMAL[chr10:0.02Mb],NEIGHBORS[16525]]   PFKFB3   PFKFB3
+20        [INTRACHROMOSOMAL[chr10:0.02Mb],NEIGHBORS[16525]]   PFKFB3   PFKFB3
+35        [INTRACHROMOSOMAL[chr10:0.02Mb],NEIGHBORS[16525]]   PFKFB3   PFKFB3
+38        [INTRACHROMOSOMAL[chr10:0.02Mb],NEIGHBORS[16525]]   PFKFB3   PFKFB3
+40 [ConjoinG,INTRACHROMOSOMAL[chr20:0.00Mb],NEIGHBORS[141]]    ZGPAT    ZGPAT
+68        [INTRACHROMOSOMAL[chr12:0.06Mb],NEIGHBORS[61920]]   RASSF3   RASSF3
+69         [INTRACHROMOSOMAL[chr22:0.00Mb],NEIGHBORS[4341]] IGLVI-70 IGLVI-70
+77        [INTRACHROMOSOMAL[chr10:0.02Mb],NEIGHBORS[16525]]   PFKFB3   PFKFB3
+81        [INTRACHROMOSOMAL[chr10:0.02Mb],NEIGHBORS[16525]]   PFKFB3   PFKFB3
+   Gene2A     GeneB    Gene1B Gene2B BreakpointLocation SpanningDelta
+10   <NA> LINC02649 LINC02649   <NA>              Genic           -20
+20   <NA> LINC02649 LINC02649   <NA>              Genic           -17
+35   <NA> LINC02649 LINC02649   <NA>              Genic           -17
+38   <NA> LINC02649 LINC02649   <NA>              Genic           -22
+40   <NA>     LIME1     LIME1   <NA>              Genic           -22
+68   <NA>   TBC1D30   TBC1D30   <NA>              Genic           -39
+69   <NA>  IGL@-ext  IGL@-ext   <NA>              Genic           -14
+77   <NA> LINC02649 LINC02649   <NA>              Genic           -32
+81   <NA> LINC02649 LINC02649   <NA>              Genic           -22
+
+> sfc_groupcount <- groupcount_fusion_calls(fusionQCFiltered, group = "Sample", 1)
+> sfc_groupcount
+# A tibble: 1 × 3
+# Groups:   FusionName [1]
+  FusionName        group.ct Groups
+  <chr>                <int> <chr>
+1 PFKFB3--LINC02649        6 PAX18, PAX22, PAX31, PAX03, PAX47, PAX29
