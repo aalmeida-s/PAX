@@ -1,7 +1,6 @@
 # Proyecto PAX
 
-## Análisis de la aplicación de un pipeline bioinformático de RNAseq en pacientes con poliposis adenomatosa tipo X sin
-diagnóstico molecular.
+## Análisis de la aplicación de un pipeline bioinformático de RNAseq en pacientes con poliposis adenomatosa tipo X sin diagnóstico molecular.
 
 El cáncer colorrectal (CCR) es uno de los tipos de cáncer más frecuentes y de mayor mortalidad a nivel
 mundial, presentando una incidencia del 10.2% y acabando anualmente con la vida de en torno al 9% de
