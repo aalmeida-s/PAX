@@ -47,3 +47,23 @@ obtener un resultado genético compatible con su patología mediante técnicas c
 nuestro caso un panel NGS de genes PAX (Panel PAX: APC, MUTYH, AXIN2, BMPR1A, MLH1, MLH3, MSH2, MSH3, PTEN, NTHL1, PMS2, PMS2CL, POLD1, POLE, SMAD4, STK11, GALNT12).
 Entre las aproximaciones a estudiar se encuentra la herramienta STAR-Fusion, DROP - pipeline (del inglés Detection of RNA Outliers Pipeline)16 y además, abordaremos un paso más en el intento de obtener alguna confirmación de diagnóstico extra con la comparación de algunas herramientas utilizadas en el estudio de inversiones en RNA.
 El interés de este estudio reside en su utilidad clínica y traslacional, ya que una vez evaluado se pretende implementar dicho pipeline (STAR-Fusion + DROP-pipeline + herramienta de detección de fusiones) de análisis RNAseq en nuestro centro de trabajo para su uso en proyectos de investigación y/o incorporación a la rutina asistencial en el futuro. De esta forma, si se consiguieran unos resultados relevantes clínicamente supondría un paso hacia la instauración de este tipo de tecnologías en la rutina diagnóstica, ayudando al establecimiento de guías clínicas más ajustadas y a un mejor asesoramiento y manejo clínico de estos pacientes.
+
+## Bibliografía
+
+1. Goodarzi, E., Sohrabivafa, M., Dehkordi, A. & Khazaei, Z. Worldwide incidence and mortality of bladder cancer and human development index: An ecological study. Indian J. Med. Spec. 11, 88 (2020).
+2. Kim, S. E. et al. Sex- and gender-specific disparities in colorectal cancer risk. World J. Gastroenterol. 21, 5167–5175 (2015).
+3. Foulkes, W. D. Inherited Susceptibility to Common Cancers. N. Engl. J. Med. 359, 2143–2153 (2008).
+4. Peters, U., Bien, S. & Zubair, N. Genetic architecture of colorectal cancer. Gut 64, 1623–1636 (2015).
+5. Fearon, E. R. & Vogelstein, B. A genetic model for colorectal tumorigenesis. Cell 61, 759–767 (1990).
+6. Gehart, H. & Clevers, H. Tales from the crypt: new insights into intestinal stem cells. Nat. Rev. Gastroenterol. Hepatol. 2018 161 16, 19–34 (2018).
+7. Grover, S. et al. Prevalence and Phenotypes of APC and MUTYH Mutations in Patients with Multiple Colorectal Adenomas. JAMA 308, 485 (2012).
+8. Valle, L. et al. Update on genetic predisposition to colorectal cancer and polyposis. Mol. Aspects Med. 69, 10–26 (2019).
+9. Lorca, V. et al. Role of GALNT12 in the genetic predisposition to attenuated adenomatous polyposis syndrome. PLoS One 12, (2017).
+10. Evans, D. R. et al. Evidence for GALNT12 as a moderate penetrance gene for colorectal cancer. Hum. Mutat. 39, 1092–1101 (2018).
+11. Te Paske, I. B. A. W., Ligtenberg, M. J. L., Hoogerbrugge, N. & de Voer, R. M. Candidate gene discovery in hereditary colorectal cancer and polyposis syndromes—considerations for future studies. Int. J. Mol. Sci. 21, 1–21 (2020).
+12. Tsoulos, N. et al. Analysis of hereditary cancer syndromes by using a panel of genes: Novel and multiple pathogenic mutations. Cancer Res. 79, P4-03-07-P4-03–07 (2019).
+13. Cummings, B. B. et al. Improving genetic diagnosis in Mendelian disease with transcriptome sequencing. Sci. Transl. Med. 9, (2017).
+14. Gonorazky, H. et al. RNAseq analysis for the diagnosis of muscular dystrophy. Ann. Clin. Transl. Neurol. 3, 55–60 (2015).
+15. Wang, K. et al. Whole-genome DNA/RNA sequencing identifies truncating mutations in RBCK1 in a novel Mendelian disease with neuromuscular and cardiac involvement. Genome Med. 5, (2013).
+16. Yépez, V. A. et al. Detection of aberrant gene expression events in RNA sequencing data. Nat. Protoc. 16, 1276–1296 (2021).
+17. Cummings, B. B. et al. Genotype-Tissue Expression Consortium. Sci Transl Med 12, 1–25 (2017).
