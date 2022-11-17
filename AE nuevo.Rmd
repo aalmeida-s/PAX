@@ -1,0 +1,261 @@
+---
+title: "Expresión aberrante mediante la herramienta OUTRIDER"
+output: html_document
+date: "2022-11-03"
+---
+# Expresión aberrante mediante la herramienta OUTRIDER
+
+## Importación de los datos
+
+En esta parte del proyecto procedimos al estudio valores atípicos en la expresión de las muestras pertenecientes a pacientes PAX. Como el número de muestras disponibles para el estudio era 40 y las necesarias para un buen funcionamiento del programa son entre 50 y 60 decidimos completar la 'n' con una cohorte de 345 muestras de sangre total de individuos sanos de un repositorio público (datos disponibles en el repositorio SRA con número de acceso PRJNA603342). 
+
+Se realizó previamente el alineamiento de los archivos Fastq en el mismo centro donde se procesaron las muestras (CNAG). De esta forma, nosotros partiremos de los archivos de recuento de lecturas sin procesar.
+
+Para proceder al estudio, primero, tenemos que cargar el paquete OUTRIDER que usaremos para ejecutar el análisis de valores atípicos de expresión (a partir de ahora utilizaremos su traducción en inglés *outliers*). Para mapear los nombres de los genes ENSEMBL y los símbolos HGNC usamos anotables. 
+
+```{r}
+library(OUTRIDER)
+library(dplyr)
+install.packages("devtools")
+devtools::install_github("stephenturner/annotables")
+library(annotables)
+```
+
+Para el análisis de detección de *outliers*, necesitamos los recuentos de lecturas sin procesar (que llamaremos `cts`) y una anotación de muestra (que llamaremos `annots`) donde definiremos: nombre (RNA_ID), grupo al que pertenecen (BATCH) y su sexo (Sex). Estos archivos se cargarán en la sesión junto con la base de datos (`txdb_cnag`) que se utilizará para cribar los genes expresados? (...)
+
+```{r}
+
+library(RSQLite)
+
+filedb<-file.choose()
+txdb_cnag<-loadDb(filedb)
+
+filetotalcounts <- file.choose()
+total_counts <- readRDS(filetotalcounts)
+
+```
+
+Una vez cargado el archivo crudo con toda la información de las muestras (`total_counts`), procederemos a seleccionar los archivos `cts` y `annots`. Además, al archivo de anotado `annots` le añadiremos una columna denominada `sampleID` que necesitará el programa más adelante.
+
+```{r}
+cts<- as.matrix(total_counts@assays@data@listData[["counts"]])
+cts[1:5,1:5]
+print("Dimensiones de la tabla de contaje:")
+dim(cts)
+
+annots <- total_counts@colData@listData[c("RNA_ID","BATCH","Sex")]
+annots<- data.frame(annots)
+annots <- annots %>% 
+  mutate(sampleID = RNA_ID)
+head(annots)
+print("Dimensiones de la tabla de anotación:")
+dim(annots)
+
+```
+Podemos ver que tenemos 61533 genes y 385 muestras en nuestro experimento, de las cuales sólo 40 pertenecen a nuestro ensayo PAX. Para el contajese usaron todos los genes anotados en la anotación GENCODE v29.
+
+## Filtraje de genes no expresados
+
+Después, creamos un objeto OUTRIDER (que llamaremos `ods_cnag`) con la anotación cargada y la matriz de conteo sin procesar ejecutando `OutriderDataSet`:
+
+```{r}
+ods_cnag <- OutriderDataSet(countData=cts, colData=annots)
+```
+
+En este momento es necesario realizar un cribado de todos los genes que no se han expresado. En nuestro caso, al ser muestras de sangre periférica nos interesan los genes expresados en este tejido. Para que la detección de *outliers* sea más robusta tenemos que determinar un buen filtro de expresión de genes (revisar funcion filterExpression para hacer varios controles de expresión). Un buen control de expresión de genes es el parámetro **FPKM** que determina el número de fragmentos por kb por millon de lecturas mapeadas. Para determinar el parámetro FPKM necesitamos la longitud de cada gen, localizada en el archivo de anotado `txdb_cnag` cargado anteriormente.
+
+En este caso vamos a seguir el filtrado estandar manteniendo aquellos genes que tienen un valor de FPKM mayor que 1 en al menos el 5% de las muestras. Utilizaremos el argumento `filterGenes=FALSE` para que nos muestre tanto los genes que han pasado el filtro como los que no.
+
+```{r}
+ods_filtered <- filterExpression(ods_cnag, gtfFile=txdb_cnag, filterGenes=FALSE)
+plotFPKM(ods_filtered)
+```
+Ahora seleccionaremos únicamente los genes expresados (4966 genes).
+
+```{r}
+ods_pass_filter <- ods_filtered[mcols(ods_filtered)[,"passedFilter"],]
+ods_pass_filter
+```
+
+## Covariación de las muestras
+
+Por lo general, en los datos de RNA-seq se puede ver la covariación de las muestras en forma de agrupaciones de las cuales se conoce la causa (por ejemplo, sexo, origen, lote), pero a veces proviene de factores de confusión desconocidos. En nuestro caso, el factor de confusión que más nos preocupa es el diferente tratamiento de las muestras ya que se extrajeron y procesaron de forma diferente las pertenecientes al proyecto (comienzan con las letras 'AW' y están nominadas como 'BATCH'= Robleslui_01 y Robleslui_02) y las pertenecientes al repositorio (comienzan con las letras 'SRR' y están nominadas como 'BATCH'= ext). También podemos hacer un *subset* de nuestras muestras solo seleccionando las lecturas pertenecientes al proyecto:
+
+
+```{r}
+
+pax_ods_pass_filter<- ods_pass_filter[,c(ods_pass_filter$BATCH=="Robleslui_01" | ods_pass_filter$BATCH=="Robleslui_02")]
+
+# Ajustamos el plot
+options(repr.plot.width=6, repr.plot.height=5)
+
+# utilizamos normalize=FALSE ya que los datos aun no estan corregidos
+plotCountCorHeatmap(ods_pass_filter, main = "Heatmap correlación lecturas", colGroups=c("Sex"), rowGroups="BATCH", nRowCluster=4, normalize=FALSE)
+plotCountCorHeatmap(pax_ods_pass_filter, main = "Heatmap correlación lecturas PAX", colGroups=c("Sex"), rowGroups="BATCH", nRowCluster=4, normalize=FALSE)
+```
+
+Tal y como esperábamos encontramos que las muestras PAX se agrupan entre ellas, confirmando que es un factor de confusión que hay que eliminar. Además se agrupan entre ellas por por extracción (Robleslui_01 y Robleslui_02)
+
+## Genes más variables por muesta (sin normalizar)
+
+Podemos representar ahora los genes más variables por muestra antes de normalizar y eliminar los factores de confusión para compararlos con los que aparezcan tras normalizar:
+
+```{r}
+# Heatmap of the gene/sample expression
+ods_gene_exp_unfil<- plotCountGeneSampleHeatmap(
+  ods_pass_filter,
+  colGroups=c("BATCH"),
+  normalized=FALSE,
+  main = "90 genes más variables por muestra",
+  nGenes = 90
+)
+
+# Heatmap of the gene/sample expression
+ods_gene_exp_unfil<- plotCountGeneSampleHeatmap(
+  pax_ods_pass_filter,
+  colGroups=c("BATCH"),
+  normalized=FALSE,
+  main = "90 genes más variables por muestra",
+  nGenes = 90
+)
+```
+
+## Normalización de las muestras. 
+
+Ahora usaremos OUTRIDER para modelar la covariación de la muestra, también llamada *espacio latente*, en función de los datos de expresión génica proporcionados. Usar la dimensión correcta (parámetro 'q') para el espacio latente es crucial para lograr el mejor rendimiento. Esto se puede hacer con `findEncodingDim()`.
+
+```{r}
+## Find the optimal dimension for the latent space
+set.seed(1234)
+ods_pass_filter <- findEncodingDim(ods_pass_filter)
+getBestQ(ods_pass_filter)
+plotEncDimSearch(ods_pass_filter)
+
+```
+
+Una vez encontrado, en nuestro caso q = 16, ajustaremos el modelo para eliminar los factores de confusión y volveremos a generar un *plot* de nuestras muestras.
+
+```{r}
+## fit the OUTRIDER model
+ods_sizeFactors <- estimateSizeFactors(ods_pass_filter)
+ods_bestq <- controlForConfounders(ods_sizeFactors, q= 16, iterations=3)
+```
+Vamos a representar el mapa de calor de todas las muestras y el mapa de calor de las del proyecto:
+
+```{r}
+pax_bestq<- ods_bestq[,c(ods_bestq$BATCH=="Robleslui_01" | ods_bestq$BATCH=="Robleslui_02")]
+
+ods_f_n <- plotCountCorHeatmap(ods_bestq,main = "Heatmap correlación lecturas con control de factores de confusión", colGroups=c("Sex"), rowGroups="BATCH", nRowCluster=4, normalized=TRUE)
+
+ods_f_n_pax <- plotCountCorHeatmap(pax_bestq,main = "Heatmap correlación lecturas con control de factores de confusión PAX", colGroups=c("Sex"), rowGroups="BATCH", nRowCluster=4, normalized=TRUE)
+```
+Como podemos observar en el nuevo *heatmap*, sobretodo en el de las muestras PAX, hemos eliminado las agrupaciones que existían por BATCH, por lo que ya sí podríamos hacer una detección robusta de *outliers*.
+
+
+## Genes más variables por muesta (normalizadas)
+
+Lo primero que podemos hacer es añadir el símbolo HGNC de cada gen para que sea el que aparezca en el mapa de calor cuando lo representemos:
+
+```{r}
+# Eliminamos la version de los IDs de los genes y lo unimos con la anotación de GRCh37 de la libreria 'annotables'
+
+geneIDs <- gsub("\\.[0-9]*(_[0-9]*)?.*$", "", rownames(ods_f_n))
+map <- merge(data.table(ensgene=geneIDs), grch37, sort=FALSE,
+        all.x=TRUE)[!duplicated(ensgene),]
+
+# Establecemos los nuevos nombres de genes solo por su simbolo HGNC
+if(!"ENSG" %in% colnames(mcols(ods_f_n))){
+    mcols(ods_f_n)$ENSG <- geneIDs
+    rownames(ods_f_n) <- map[,ifelse(
+            is.na(symbol) | symbol == "" | duplicated(symbol), geneIDs, symbol)]
+}
+
+```
+
+Seleccionamos ahora solo las muestras relativas al proyecto para hacer el mapa de calor:
+
+```{r}
+pax_ods_f_n<- ods_f_n[,c(ods_f_n$BATCH=="Robleslui_01" | ods_f_n$BATCH=="Robleslui_02")]
+```
+
+```{r}
+ods_gene_exp<- plotCountGeneSampleHeatmap(
+  ods_f_n,
+  colGroups=c("BATCH"),
+  normalized=TRUE,
+  nRowCluster=4,
+  main = "20 genes más variables por muestra normalizado",
+  nGenes =20,
+  show_names = "row")
+
+ods_gene_exp<- plotCountGeneSampleHeatmap(
+  pax_ods_f_n,
+  colGroups=c("BATCH"),
+  normalized=TRUE,
+  nRowCluster=4,
+  main = "20 genes más variables por muestra normalizado PAX",
+  nGenes =20,
+  show_names = "row")
+```
+
+## Deteccion de *outliers*. Tabla de resultados (p-value y z-score)
+
+```{r}
+#  P-values (nominal y ajustado)
+ods_f_n_P <- computePvalues(ods_f_n, alternative="two.sided", method="BY")
+
+```
+
+```{r}
+#Z-scores
+ods_f_n_P_z <- computeZscores(ods_f_n_P)
+```
+
+Hacemos varios cribados de menos a más exigente 
+```{r}
+# get results
+res_total_option0 <- results(ods_f_n_P_z,padjCutoff=0.1)
+head(res_total_option0)
+
+res_total_option1 <- results(ods_f_n_P_z,padjCutoff=0.1, zScoreCutoff=2)
+head(res_total_option1)
+
+res_total_option2 <- results(ods_f_n_P_z,padjCutoff=0.1, zScoreCutoff=3)
+head(res_total_option2)
+
+
+res_pax_0<- res_total_option0[grep("AW", res_total_option0$sampleID), ]
+res_pax_1<- res_total_option1[grep("AW", res_total_option1$sampleID), ]
+res_pax_2<- res_total_option2[grep("AW", res_total_option2$sampleID), ]
+
+```
+
+## BCV - Biological coefficient of variation
+
+```{r}
+
+estimateThetaWithoutAutoCorrect <- function(ods){
+  
+  ods1 <- OutriderDataSet(countData=counts(ods), colData=colData(ods))
+  # use rowMeans as expected means
+  normalizationFactors(ods1) <- matrix(rowMeans(counts(ods1)), 
+                                       ncol=ncol(ods1), nrow=nrow(ods1))
+  ods1 <- fit(ods1)
+  theta(ods1)
+  
+  return(theta(ods1))
+}
+
+before <- data.table(when = "Before",
+                     BCV = 1/sqrt(estimateThetaWithoutAutoCorrect(ods_pass_filter)))
+after <- data.table(when = "After", BCV = 1/sqrt( theta(fit(ods_f_n))))
+bcv_dt <- rbind(before, after)
+
+# boxplot of BCV Before and After Autoencoder
+ggplot(bcv_dt, aes(when, BCV)) +
+  geom_boxplot() +
+  theme_bw(base_size = 14) +
+  labs(x = "Autoencoder correction", y = "Biological coefficient \nof variation",
+       title = dataset_title)
+```
+
