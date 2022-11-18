@@ -22,6 +22,7 @@ library(annotables)
 library(ggplot2)
 install.packages("ggpubr")
 library(ggpubr)
+library("writexl")
 ```
 
 Para el análisis de detección de *outliers*, necesitamos los recuentos de lecturas sin procesar (que llamaremos `cts`) y una anotación de muestra (que llamaremos `annots`) donde definiremos: nombre (RNA_ID), grupo al que pertenecen (BATCH) y su sexo (Sex). Estos archivos se cargarán en la sesión junto con la base de datos (`txdb_cnag`) que se utilizará para cribar los genes expresados? (...)
@@ -231,10 +232,10 @@ res_pax_1<- res_total_option1[grep("AW", res_total_option1$sampleID), ]
 res_pax_2<- res_total_option2[grep("AW", res_total_option2$sampleID), ]
 res_pax_3<- res_total_option3[grep("AW", res_total_option3$sampleID), ]
 ```
-Guardamos los resultados:
+Guardamos los resultados añadiendo FoldChange como nueva columna:
 
 ```{r}
-library("writexl")
+res_pax_0$FC <- round(2^res_pax_0$l2fc,2)
 write_xlsx(res_pax_0,"C:/Users/usuario/Desktop/OUTRIDER FILES/Resultados_OUTRIDER.xlsx")
 ```
 
