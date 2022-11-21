@@ -1,0 +1,116 @@
+---
+title: "Splicing aberrante con FRASER"
+output: html_document
+date: "2022-11-03"
+---
+
+```{r}
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("FRASER")
+install.packages("ggpubr")
+
+library(FRASER)
+library(data.table)
+library(ggplot2)
+library(ggpubr)
+
+```
+
+Cargamos los archivos de junctions y nonSplitJunctions, pertenecientes a los contajes de los sitios de empalme y los sitios de no empalme:
+
+```{r}
+library(RSQLite)
+library(rhdf5)
+
+filedb<-file.choose()
+txdb_cnag<-loadDb(filedb)
+
+
+
+filejunctions <- file.choose()
+junctions <- readRDS(filejunctions)
+fileh5junctions <- file.choose()
+View(h5ls(fileh5junctions))
+count_junctions<-h5read(fileh5junctions, "assay001")
+dim(count_junctions)
+rownames<- junctions@colData@rownames
+colnames(count_junctions)<- rownames
+head(count_junctions)
+junctionsdata<-data.frame(junctions@rowRanges)
+junctionsdata<-junctionsdata[c("seqnames","start","end","width","strand","startID","endID")]
+
+junctionCts<-cbind(junctionsdata,count_junctions)
+head(junctionCts)
+
+filesplicesite <- file.choose()
+splicesites <- readRDS(filesplicesite)
+fileh5splicesites <- file.choose()
+View(h5ls(fileh5splicesites))
+count_splicesite<-h5read(fileh5splicesites, "assay001")
+dim(count_splicesite)
+colnames(count_splicesite)<- rownames
+head(count_splicesite)
+splicedata<-data.frame(splicesites@rowRanges)
+
+spliceSitesCts<-cbind(splicedata,count_splicesite)
+head(spliceSitesCts)
+```
+
+```{r}
+annots <- file.choose()
+annots<-read.table(annots, sep = '\t', header = TRUE)
+annots<- data.frame(annots)
+colnames(annots)
+annots<-annots[c("sampleID","DNA_ID","BATCH","Sex")]
+head(annots)
+
+```
+
+```{r}
+filefds<-file.choose()
+fds<-readRDS(filefds)
+fds <- FraserDataSet(annots,junctionCts,spliceSitesCts)
+fds
+```
+
+```{r}
+fds <- calculatePSIValues(fds)
+```
+
+```{r}
+fds <- filterExpressionAndVariability(fds, minDeltaPsi=0.0, filter=FALSE)
+```
+
+
+```{r}
+plotFilterExpression(fds, bins=100)
+
+```
+
+```{r}
+fds_filtered <- fds[mcols(fds, type="j")[,"passed"],]
+fds_filtered
+```
+
+```{r}
+plotCountCorHeatmap(fds, type="psi5", logit=TRUE, normalized=FALSE, annotation_col=c("Sex", "BATCH"))
+```
+
+```{r}
+plotEncDimSearch(fds_filtered, type="psi5")
+plotAberrantPerSample(fds)
+```
+
+
+```{r}
+res <- file.choose()
+res<-read.table(res, sep = '\t', header = TRUE)
+```
+
+```{r}
+plotCountCorHeatmap(res, type="psi5", normalized=TRUE, logit=TRUE, topN=15000, 
+        annotation_col=c("BATCH"), sampleClustering=NA)
+```
+
