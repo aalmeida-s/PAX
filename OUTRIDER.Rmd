@@ -22,7 +22,6 @@ library(annotables)
 library(ggplot2)
 install.packages("ggpubr")
 library(ggpubr)
-library("writexl")
 ```
 
 Para el análisis de detección de *outliers*, necesitamos los recuentos de lecturas sin procesar (que llamaremos `cts`) y una anotación de muestra (que llamaremos `annots`) donde definiremos: nombre (RNA_ID), grupo al que pertenecen (BATCH) y su sexo (Sex). Estos archivos se cargarán en la sesión junto con la base de datos (`txdb_cnag`) que se utilizará para cribar los genes expresados? (...)
@@ -42,10 +41,13 @@ total_counts <- readRDS(filetotalcounts)
 Una vez cargado el archivo crudo con toda la información de las muestras (`total_counts`), procederemos a seleccionar los archivos `cts` y `annots`. Además, al archivo de anotado `annots` le añadiremos una columna denominada `sampleID` que necesitará el programa más adelante.
 
 ```{r}
-cts<- as.matrix(total_counts@assays@data@listData[["counts"]])
+cts<- data.frame(total_counts@assays@data@listData[["counts"]])
 cts[1:5,1:5]
 print("Dimensiones de la tabla de contaje:")
 dim(cts)
+
+cts<- cts %>% select(starts_with("AW"))
+cts<- as.matrix(cts)
 
 annots <- total_counts@colData@listData[c("RNA_ID","BATCH","Sex")]
 annots<- data.frame(annots)
@@ -54,6 +56,8 @@ annots <- annots %>%
 head(annots)
 print("Dimensiones de la tabla de anotación:")
 dim(annots)
+
+annots<- annots[c(annots$BATCH=="Robleslui_01" | annots$BATCH=="Robleslui_02"),]
 
 ```
 Podemos ver que tenemos 61533 genes y 385 muestras en nuestro experimento, de las cuales sólo 40 pertenecen a nuestro ensayo PAX. Para el contajese usaron todos los genes anotados en la anotación GENCODE v29.
@@ -86,15 +90,12 @@ Por lo general, en los datos de RNA-seq se puede ver la covariación de las mues
 
 
 ```{r}
-
-pax_ods_pass_filter<- ods_pass_filter[,c(ods_pass_filter$BATCH=="Robleslui_01" | ods_pass_filter$BATCH=="Robleslui_02")]
-
 # Ajustamos el plot
 options(repr.plot.width=6, repr.plot.height=5)
 
 # utilizamos normalize=FALSE ya que los datos aun no estan corregidos
 plotCountCorHeatmap(ods_pass_filter, main = "Heatmap correlación lecturas", colGroups=c("Sex"), rowGroups="BATCH", nRowCluster=4, normalize=FALSE)
-plotCountCorHeatmap(pax_ods_pass_filter, main = "Heatmap correlación lecturas PAX", colGroups=c("Sex"), rowGroups="BATCH", nRowCluster=4, normalize=FALSE)
+
 ```
 Tal y como esperábamos encontramos que las muestras PAX se agrupan entre ellas, confirmando que es un factor de confusión que hay que eliminar. Además se agrupan entre ellas por por extracción (Robleslui_01 y Robleslui_02)
 
@@ -112,14 +113,6 @@ ods_gene_exp_unfil<- plotCountGeneSampleHeatmap(
   nGenes = 90
 )
 
-# Heatmap of the gene/sample expression
-ods_gene_exp_unfil<- plotCountGeneSampleHeatmap(
-  pax_ods_pass_filter,
-  colGroups=c("BATCH"),
-  normalized=FALSE,
-  main = "90 genes más variables por muestra",
-  nGenes = 90
-)
 ```
 
 ## Normalización de las muestras. 
@@ -144,11 +137,9 @@ ods_bestq <- controlForConfounders(ods_sizeFactors, q= 20, iterations=15)
 Vamos a representar el mapa de calor de todas las muestras y el mapa de calor de las del proyecto:
 
 ```{r}
-pax_bestq<- ods_bestq[,c(ods_bestq$BATCH=="Robleslui_01" | ods_bestq$BATCH=="Robleslui_02")]
 
 ods_f_n <- plotCountCorHeatmap(ods_bestq,main = "Heatmap correlación lecturas con control de factores de confusión", colGroups=c("Sex"), rowGroups="BATCH", nRowCluster=4, normalized=TRUE)
 
-ods_f_n_pax <- plotCountCorHeatmap(pax_bestq,main = "Heatmap correlación lecturas con control de factores de confusión PAX", colGroups=c("Sex"), rowGroups="BATCH", nRowCluster=4, normalized=TRUE)
 ```
 Como podemos observar en el nuevo *heatmap*, sobretodo en el de las muestras PAX, hemos eliminado las agrupaciones que existían por BATCH, por lo que ya sí podríamos hacer una detección robusta de *outliers*.
 
@@ -175,9 +166,6 @@ if(!"ENSG" %in% colnames(mcols(ods_f_n))){
 
 Seleccionamos ahora solo las muestras relativas al proyecto para hacer el mapa de calor:
 
-```{r}
-pax_ods_f_n<- ods_f_n[,c(ods_f_n$BATCH=="Robleslui_01" | ods_f_n$BATCH=="Robleslui_02")]
-```
 
 ```{r}
 ods_gene_exp<- plotCountGeneSampleHeatmap(
@@ -189,14 +177,6 @@ ods_gene_exp<- plotCountGeneSampleHeatmap(
   nGenes =20,
   show_names = "row")
 
-ods_gene_exp<- plotCountGeneSampleHeatmap(
-  pax_ods_f_n,
-  colGroups=c("BATCH"),
-  normalized=TRUE,
-  nRowCluster=4,
-  main = "20 genes más variables por muestra normalizado PAX",
-  nGenes =20,
-  show_names = "row")
 ```
 ## Deteccion de *outliers*. Tabla de resultados (p-value y z-score)
 
@@ -215,36 +195,26 @@ Generamos varias tablas de resultados en función de los cortes por pvalue ajust
 
 ```{r}
 
-res_total_option0 <- results(ods_f_n_P_z,padjCutoff=0.1)
+res_total_option0 <- results(ods_f_n_P_z,padjCutoff=0.2)
 head(res_total_option0)
 
-res_total_option1 <- results(ods_f_n_P_z,padjCutoff=0.1, zScoreCutoff=2)
+res_total_option1 <- results(ods_f_n_P_z,padjCutoff=0.2, zScoreCutoff=2)
 head(res_total_option1)
 
-res_total_option2 <- results(ods_f_n_P_z,padjCutoff=0.1, zScoreCutoff=3)
-head(res_total_option2)
 
-res_total_option3 <- results(ods_f_n_P_z,padjCutoff=0.05, zScoreCutoff=3)
-head(res_total_option3)
-
-res_pax_0<- res_total_option0[grep("AW", res_total_option0$sampleID), ]
-res_pax_1<- res_total_option1[grep("AW", res_total_option1$sampleID), ]
-res_pax_2<- res_total_option2[grep("AW", res_total_option2$sampleID), ]
-res_pax_3<- res_total_option3[grep("AW", res_total_option3$sampleID), ]
 ```
-Guardamos los resultados añadiendo FoldChange como nueva columna:
+Guardamos los resultados:
 
 ```{r}
-res_pax_0$FC <- round(2^res_pax_0$l2fc,2)
+library("writexl")
 write_xlsx(res_pax_0,"C:/Users/usuario/Desktop/OUTRIDER FILES/Resultados_OUTRIDER.xlsx")
 ```
 
 ## Genes aberrantes por muestra
 
 ```{r}
-pax_ods_f_n_P_z<- ods_f_n_P_z[,c(ods_f_n_P_z$BATCH=="Robleslui_01" | ods_f_n_P_z$BATCH=="Robleslui_02")]
 
-plotAberrantPerSample(ods_f_n_P_z, padjCutoff=0.05)
+plotAberrantPerSample(ods_f_n_P_z, padjCutoff=0.1)
 ```
 
 ## CVB - Coeficiente de variación biológico
@@ -268,7 +238,7 @@ estimateThetaWithoutAutoCorrect <- function(ods){
 
 before <- data.table(when = "Antes",
                      BCV = 1/sqrt(estimateThetaWithoutAutoCorrect(ods_pass_filter)))
-after <- data.table(when = "Después", BCV = 1/sqrt( theta(pax_ods_f_n_P_z)))
+after <- data.table(when = "Después", BCV = 1/sqrt( theta(ods_f_n_P_z)))
 bcv_dt <- rbind(before, after)
 
 ggplot(bcv_dt, aes(when, BCV)) +
@@ -286,6 +256,9 @@ ggarrange(ncol=3,
 plotVolcano(ods_f_n_P_z, "AW7780_3011AG", base=TRUE),
 plotVolcano(ods_f_n_P_z, "AW7807_7601AG", base=TRUE),
 plotVolcano(ods_f_n_P_z, "AW7804_7598AG", base=TRUE))
+
+plotExpectedVsObservedCounts(ods_f_n_P_z, "MLH3", basePlot=TRUE)
+plotExpectedVsObservedCounts(ods_f_n_P_z, "APC", basePlot=TRUE)
 
 ```
 
