@@ -24,7 +24,7 @@ install.packages("ggpubr")
 library(ggpubr)
 ```
 
-Para el análisis de detección de *outliers*, necesitamos los recuentos de lecturas sin procesar (que llamaremos `cts`) y una anotación de muestra (que llamaremos `annots`) donde definiremos: nombre (RNA_ID), grupo al que pertenecen (BATCH) y su sexo (Sex). Estos archivos se cargarán en la sesión junto con la base de datos (`txdb_cnag`) que se utilizará para cribar los genes expresados? (...)
+Para el análisis de detección de *outliers*, necesitamos los recuentos de lecturas sin procesar (que llamaremos `cts`) y una anotación de muestra (que llamaremos `annots`) donde definiremos: nombre (RNA_ID), grupo al que pertenecen (BATCH) y su sexo (Sex). Estos archivos se cargarán en la sesión junto con la base de datos (`txdb_cnag`)
 
 ```{r}
 
